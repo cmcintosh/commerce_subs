@@ -1,0 +1,31 @@
+entity.commerce_sub.collection:
+  path: '/admin/commerce/subs'
+  defaults:
+    _entity_list: 'commerce_sub'
+    _title: 'Subs'
+  requirements:
+    _permission: 'administer commerce_sub'
+
+entity.commerce_sub_attribute.collection:
+  path: '/admin/commerce/sub-attributes'
+  defaults:
+    _entity_list: 'commerce_sub_attribute'
+    _title: 'Sub attributes'
+  requirements:
+    _permission: 'administer commerce_sub_attribute'
+
+entity.commerce_sub_type.collection:
+  path: '/admin/commerce/config/sub-types'
+  defaults:
+    _entity_list: 'commerce_sub_type'
+    _title: 'Sub types'
+  requirements:
+    _permission: 'administer commerce_sub_type'
+
+entity.commerce_sub_variation_type.collection:
+  path: '/admin/commerce/config/sub-variation-types'
+  defaults:
+    _entity_list: 'commerce_sub_variation_type'
+    _title: 'Sub variation types'
+  requirements:
+    _permission: 'administer commerce_sub_type'

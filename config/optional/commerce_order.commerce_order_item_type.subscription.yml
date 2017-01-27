@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - commerce_sub
+label: 'Subscription'
+id: subscription
+purchasableEntityType: commerce_sub_variation
+orderType: default
+traits: {  }

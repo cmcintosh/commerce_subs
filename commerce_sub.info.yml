@@ -1,0 +1,35 @@
+name: Commerce Sub
+type: module
+description: 'Defines the Sub entity and associated features.'
+package: Commerce
+core: 8.x
+dependencies:
+  - commerce
+  - commerce:commerce_price
+  - commerce:commerce_store
+  - path
+  - text
+config_devel:
+  install:
+    - commerce_sub.commerce_sub_type.default
+    - commerce_sub.commerce_sub_variation_type.default
+    - core.entity_form_display.commerce_sub.default.default
+    - core.entity_view_display.commerce_sub.default.default
+    - core.entity_form_display.commerce_sub_variation.default.default
+    - field.storage.commerce_sub.body
+    - field.storage.commerce_sub.stores
+    - field.storage.commerce_sub.variations
+    - field.field.commerce_sub.default.body
+    - field.field.commerce_sub.default.stores
+    - field.field.commerce_sub.default.variations
+    - system.action.commerce_delete_sub_action
+    - system.action.commerce_publish_sub
+    - system.action.commerce_unpublish_sub
+    - views.view.commerce_subs
+  optional:
+    - commerce_order.commerce_order_item_type.default
+    - core.entity_form_display.commerce_order_item.sub_variation.default
+    - core.entity_form_display.commerce_order_item.sub_variation.add_to_cart
+    - core.entity_view_display.commerce_order_item.sub_variation.default
+    - core.entity_view_display.commerce_sub_variation.default.cart
+    - core.entity_view_mode.commerce_sub_variation.cart

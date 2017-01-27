@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ *
+ * Default sub template.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - sub: The rendered sub fields.
+ *   Use 'sub' to print them all, or print a subset such as
+ *   'sub.title'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ sub|without('title') }}
+ *   @endcode
+ * - sub_entity: The sub entity.
+ * - sub_url: The sub URL.
+ *
+ * @ingroup themeable
+ */
+#}
+<article{{ attributes }}>
+  {{- sub|without('variation_attributes') -}}
+</article>

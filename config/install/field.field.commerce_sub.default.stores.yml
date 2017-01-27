@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_sub.commerce_sub_type.default
+    - field.storage.commerce_sub.stores
+id: commerce_sub.default.stores
+field_name: stores
+entity_type: commerce_sub
+bundle: default
+label: Stores
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:commerce_store'
+  handler_settings: {  }
+field_type: entity_reference

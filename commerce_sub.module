@@ -1,0 +1,432 @@
+<?php
+
+/**
+ * @file
+ * Defines the Sub entity and associated features.
+ */
+
+use Drupal\commerce\BundleFieldDefinition;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Render\Element;
+use Drupal\commerce_order\Entity\Order;
+use Drupal\commerce_order\Entity\OrderItem;
+use Drupal\commerce_order\Adjustment;
+use Drupal\commerce_price\Price;
+
+/**
+ * Implements hook_config_translation_info_alter().
+ */
+function commerce_sub_config_translation_info_alter(&$info) {
+  $info['commerce_sub_attribute']['class'] = '\Drupal\commerce_sub\ConfigTranslation\SubAttributeMapper';
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function commerce_sub_entity_form_display_update(EntityFormDisplayInterface $form_display) {
+  // Reset the cached attribute field map when the 'default' sub variation
+  // form mode is updated, since the map ordering is based on it.
+  if ($form_display->getTargetEntityTypeId() == 'commerce_sub_variation' && $form_display->getMode() == 'default') {
+    $attribute_field_manager = \Drupal::service('commerce_sub.attribute_field_manager');
+    $attribute_field_manager->clearCaches();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update().
+ */
+function commerce_sub_entity_view_display_update(EntityInterface $entity) {
+  // The sub view uses the variation view and needs to be cleared, which doesn't happen automatically
+  // because we're editing the variation, not the sub
+  if (substr($entity->getConfigTarget(), 0, 27) === 'commerce_sub_variation.') {
+    Cache::invalidateTags(['commerce_sub_view']);
+  }
+}
+
+/**
+ * Implements hook_entity_access().
+ */
+function commerce_sub_entity_access(EntityInterface $entity, $operation, $account) {
+  // Allow published subs to be viewed by all users for now.
+  // @todo Remove once we implement the full sub permissions.
+  if ($operation == 'view') {
+    if ($entity->getEntityTypeId() == 'commerce_sub' && $entity->isPublished()) {
+      return AccessResult::allowed();
+    }
+    elseif ($entity->getEntityTypeId() == 'commerce_sub_variation' && $entity->isActive()) {
+      if ($entity->getEntityTypeId() == 'commerce_sub_variation') {
+        if (user_has_subscription($entity)) {
+        //  return AccessResult::forbidden();
+        }
+        else {
+          return AccessResult::allowed();
+        }
+      }
+    }
+  }
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_theme().
+ */
+function commerce_sub_theme() {
+  return [
+    'commerce_sub_form' => [
+      'render element' => 'form',
+    ],
+    'commerce_sub' => [
+      'render element' => 'elements',
+    ],
+    'commerce_sub_variation' => [
+      'render element' => 'elements',
+    ],
+    'commerce_sub_attribute_value' => [
+      'render element' => 'elements',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_commerce_sub().
+ */
+function commerce_sub_theme_suggestions_commerce_sub(array $variables) {
+  return _commerce_entity_theme_suggestions('commerce_sub', $variables);
+}
+
+/**
+ * Implements hook_theme_suggestions_commerce_sub_variation().
+ */
+function commerce_sub_theme_suggestions_commerce_sub_variation(array $variables) {
+  return _commerce_entity_theme_suggestions('commerce_sub_variation', $variables);
+}
+
+/**
+ * Implements hook_theme_suggestions_commerce_sub_commerce_sub_attribute_value().
+ */
+function commerce_sub_theme_suggestions_commerce_sub_attribute_value(array $variables) {
+  return _commerce_entity_theme_suggestions('commerce_sub_attribute_value', $variables);
+}
+
+/**
+ * Prepares variables for sub templates.
+ *
+ * Default template: commerce-sub.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - elements: An associative array containing rendered fields.
+ *   - attributes: HTML attributes for the containing element.
+ */
+function template_preprocess_commerce_sub(array &$variables) {
+  /** @var Drupal\commerce_sub\Entity\SubInterface $sub */
+  $sub = $variables['elements']['#commerce_sub'];
+
+  $variables['sub_entity'] = $sub;
+  $variables['sub_url'] = $sub->toUrl();
+  $variables['sub'] = [];
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['sub'][$key] = $variables['elements'][$key];
+  }
+}
+
+/**
+ * Prepares variables for sub variation templates.
+ *
+ * Default template: commerce-sub-variation.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - elements: An associative array containing rendered fields.
+ *   - attributes: HTML attributes for the containing element.
+ */
+function template_preprocess_commerce_sub_variation(array &$variables) {
+  /** @var Drupal\commerce_sub\Entity\SubVariationInterface $sub_variation */
+  $sub_variation = $variables['elements']['#commerce_sub_variation'];
+  $sub = $sub_variation->getSub();
+
+  $variables['sub_variation_entity'] = $sub_variation;
+  $variables['sub_url'] = $sub->toUrl();
+  $variables['sub_variation'] = [];
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['sub_variation'][$key] = $variables['elements'][$key];
+  }
+}
+
+/**
+ * Prepares variables for sub attribute value templates.
+ *
+ * Default template: commerce-sub-attribute-value.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - elements: An associative array containing rendered fields.
+ *   - attributes: HTML attributes for the containing element.
+ */
+function template_preprocess_commerce_sub_attribute_value(array &$variables) {
+  /** @var Drupal\commerce_sub\Entity\SubAttributeValueInterface $sub */
+  $attribute_value = $variables['elements']['#commerce_sub_attribute_value'];
+
+  $variables['sub_attribute_value_entity'] = $attribute_value;
+  $variables['sub_attribute_value'] = [];
+  foreach (Element::children($variables['elements']) as $key) {
+    $variables['sub_attribute_value'][$key] = $variables['elements'][$key];
+  }
+}
+
+/**
+ * Adds the default stores field to a sub.
+ *
+ * A sub can belong to multiple stores.
+ * Store id can't be a base field because the Views integration is broken.
+ * Instead, it is created as a configurable field for each order type.
+ *
+ * @param \Drupal\commerce_sub\Entity\SubTypeInterface $sub_type
+ *   The sub type.
+ */
+function commerce_sub_add_stores_field($sub_type) {
+  $field_definition = BundleFieldDefinition::create('entity_reference')
+    ->setTargetEntityTypeId('commerce_sub')
+    ->setTargetBundle($sub_type->id())
+    ->setName('stores')
+    ->setLabel('Stores')
+    ->setCardinality(BundleFieldDefinition::CARDINALITY_UNLIMITED)
+    ->setRequired(TRUE)
+    ->setSetting('target_type', 'commerce_store')
+    ->setSetting('handler', 'default')
+    ->setDisplayOptions('form', [
+      'type' => 'commerce_entity_select',
+      'weight' => -10,
+    ]);
+
+  $configurable_field_manager = \Drupal::service('commerce.configurable_field_manager');
+  $configurable_field_manager->createField($field_definition);
+}
+
+/**
+ * Adds the default body field to a sub type.
+ *
+ * @param \Drupal\commerce_sub\Entity\SubTypeInterface $sub_type
+ *   The sub type.
+ * @param string $label
+ *   (optional) The label for the body instance. Defaults to 'Body'.
+ */
+function commerce_sub_add_body_field($sub_type, $label = 'Body') {
+  $field_definition = BundleFieldDefinition::create('text_with_summary')
+    ->setTargetEntityTypeId('commerce_sub')
+    ->setTargetBundle($sub_type->id())
+    ->setName('body')
+    ->setLabel($label)
+    ->setSetting('display_summary', FALSE)
+    ->setDisplayOptions('form', [
+      'type' => 'text_textarea_with_summary',
+      'weight' => 1,
+    ])
+    ->setDisplayOptions('view', [
+      'label' => 'hidden',
+      'type' => 'text_default',
+    ]);
+
+  $configurable_field_manager = \Drupal::service('commerce.configurable_field_manager');
+  $configurable_field_manager->createField($field_definition, FALSE);
+}
+
+/**
+ * Adds the default variations field to a sub type.
+ *
+ * Variations can't be a base field because the Views integration is broken.
+ * Instead, it is created as a configurable field for each sub type.
+ *
+ * @param \Drupal\commerce_sub\Entity\SubTypeInterface $sub_type
+ *   The sub type.
+ */
+function commerce_sub_add_variations_field($sub_type) {
+  $field_definition = BundleFieldDefinition::create('entity_reference')
+    ->setTargetEntityTypeId('commerce_sub')
+    ->setTargetBundle($sub_type->id())
+    ->setName('variations')
+    ->setLabel('Variations')
+    ->setCardinality(BundleFieldDefinition::CARDINALITY_UNLIMITED)
+    ->setRequired(TRUE)
+    ->setSetting('target_type', 'commerce_sub_variation')
+    ->setSetting('handler', 'default')
+    ->setSetting('handler_settings', [
+      'target_bundles' => [
+        $sub_type->getVariationTypeId(),
+      ],
+    ])
+    ->setDisplayOptions('form', [
+      'type' => 'inline_entity_form_complex',
+      'weight' => 10,
+      'settings' => [
+        'override_labels' => TRUE,
+        'label_singular' => 'variation',
+        'label_plural' => 'variations',
+      ],
+    ])
+    ->setDisplayOptions('view', [
+      'type' => 'commerce_add_to_cart',
+      'weight' => 10,
+    ]);
+
+  $configurable_field_manager = \Drupal::service('commerce.configurable_field_manager');
+  $configurable_field_manager->createField($field_definition);
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function commerce_sub_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+  /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
+  $field_definition = $context['items']->getFieldDefinition();
+  $field_name = $field_definition->getName();
+  $entity_type = $field_definition->getTargetEntityTypeId();
+  $widget_name = $context['widget']->getPluginId();
+  $required = $field_definition->isRequired();
+  if ($field_name == 'path' && $entity_type == 'commerce_sub' && $widget_name == 'path') {
+    $element['alias']['#description'] = t('The alternative URL for this sub. Use a relative path. For example, "/my-sub".');
+  }
+  elseif ($field_name == 'title' && $entity_type == 'commerce_sub_variation' && !$required) {
+    // The title field is optional only when its value is automatically
+    // generated, in which case the widget needs to be hidden.
+    $element['#access'] = FALSE;
+  }
+}
+
+/**
+* Implements hook_entity_update
+* - tracks for completed orders and processes them.
+*/
+function commerce_sub_commerce_order_update(EntityInterface $entity) {
+
+  if ($entity->bundle() !== 'subscription' && $entity->getCompletedTime() > 0) {
+    // Normal order.
+    $hasSubscription = false;
+    $subscriptions = [];
+    $items = $entity->getItems();
+    if (count($items) > 0) {
+      foreach($items as $item) {
+        $variation = $item->getPurchasedEntity();
+
+        if ( is_a($variation, 'Drupal\commerce_sub\Entity\SubVariation') ) {
+          $hasSubscription = true;
+          $subscriptions[] = $variation;
+        }
+      }
+    }
+
+    if ($hasSubscription && $entity->getCompletedTime() > 0) {
+      // We need to add the information for this into the database for tracking.
+      foreach($subscriptions as $delta => $subscription) {
+        $first_sub_item = $subscriptions[0]->get('first_sub_item')[0];
+        $sub_item = $subscriptions[0]->get('sub_item')[0];
+        $sub_term = $subscriptions[0]->get('sub_term')[0];
+
+        $sub_item_info = isset($sub_item) ? $sub_item->getValue()['target_plugin_configuration'] : [];
+        $first_sub_item_info = isset($first_sub_item) ? $first_sub_item->getValue()['target_plugin_configuration'] : $sub_item_info;
+        $sub_term_info = isset($sub_term) ? $sub_term->getValue()['target_plugin_configuration'] : [];
+
+        // @TODO: create an event that we can fire to determine how to respond.
+        if ($sub_term_info['id'] == 'term_relative_date') {
+          $renew_date = strtotime($sub_term_info['relative_date']);
+        }
+        else {
+          $renew_date = strtotime("+5 min"); // this is for testing.
+        }
+
+        // this records the base subscription.
+        $data = [
+          'order_id' => (int) $entity->getOrderNumber(),
+          'delta' => $delta,
+          'sku' => $subscriptions[0]->getSku(),
+          'subscription_item' => serialize($sub_item_info),
+          'subscription_term' => serialize($sub_term_info),
+          'status' => 1,
+          'renew_date' => $renew_date,
+        ];
+
+        db_merge('commerce_sub_customer_subscription')
+        ->key(['order_id' => $data['order_id'], 'delta' => $data['delta'] ])
+        ->fields($data)
+        ->execute();
+
+        // Next create the subscription order.
+        $data['subscription_item'] = unserialize($data['subscription_item']);
+        $data['subscription_term'] = unserialize($data['subscription_term']);
+        renew_subscription($data);
+      }
+
+    }
+  }
+}
+
+/**
+* Helper function to create a 'subscription' order with the items associated with the
+* active subscription.  This is called when a subscription renews.
+*/
+function renew_subscription($sub_data, $charge = TRUE) {
+
+  // First we need to check if the email for the gift getter exists as a user.
+  $order = entity_load('commerce_order', $sub_data['order_id']);
+
+  $orderItemStorage = \Drupal::entityTypeManager()
+    ->getStorage('commerce_order_item');
+  // Next we need to create the order for this gift getter.
+  $data = array(
+    'type' => 'default',
+    'uid' => $order->uid,
+    'store_id' => $order->getStoreId(),
+    'mail' => $order->email,
+    'created' => time(),
+    'changed' => time(),
+    'state' => 'completed'
+  );
+  $invoice = Order::create($data);
+  $invoice->save();
+
+  // @TODO: again need to create an event to do this better.
+  if($sub_data['subscription_item']['commerce_license_variation']) {
+    $purchasedEntity = entity_load('commerce_license_variation', $sub_data['subscription_item']['commerce_license_variation']);
+    // Create an order item from this
+    $order_item = $orderItemStorage->createFromPurchasableEntity($purchasedEntity);
+    $order_item->setQuantity(1);
+    $order_item->save();
+    $invoice->addItem($order_item);
+  }
+  else {
+    $purchasedEntity = entity_load('commerce_product_variation', $sub_data['subscription_item']['commerce_product_variation']);
+    // Create an order item from this
+    $order_item = $orderItemStorage->createFromPurchasableEntity($purchasedEntity);
+    $order_item->setQuantity(1);
+    $order_item->save();
+    $invoice->addItem($order_item);
+  }
+  $invoice->save();
+
+  // Associate this invoice with the order id.
+  $invoice_number = $invoice->getOrderNumber();
+
+}
+
+/**
+* Helper function to check if the current user has a active subscription
+* for this sku.  This prevents multiple purchases of the same subscription.
+*/
+function user_has_subscription(EntityInterface $entity) {
+  $uid = \Drupal::currentUser()->id();
+  $sku = $entity->getSku();
+
+  $query = \Drupal::database()->select('commerce_sub_customer_subscription', 'cs');
+  $query->join('commerce_order', 'o', 'o.order_number =cs.order_id');
+  $query->condition('o.uid', $uid, '=');
+  $query->condition('cs.sku', $sku, '=');
+  $query->condition('cs.status', 1, '=');
+  $query->fields('cs', ['order_id', 'sku']);
+  $query->fields('o', ['uid']);
+  $results = $query->execute()->fetchAllAssoc('uid');
+  return isset($results[$uid]);
+}

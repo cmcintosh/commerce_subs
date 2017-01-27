@@ -1,0 +1,8 @@
+name: Commerce Sub License
+type: module
+description: 'Adds support for subscriptions that include licenses.'
+package: Commerce
+core: 8.x
+dependencies:
+  - commerce_sub
+  - commerce_license

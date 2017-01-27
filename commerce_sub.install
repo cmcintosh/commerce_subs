@@ -1,0 +1,135 @@
+<?php
+
+use Drupal\Core\Database\Database;
+
+/**
+* Implements hook_schema.
+*/
+function commerce_sub_schema() {
+  $schema = [];
+
+  $schema['commerce_sub_customer_subscription'] = [
+    'description' => 'Stores the information for individual orders',
+    'fields' => [
+      'order_id' => [
+        'type' => 'int'
+      ],
+      'delta' => [
+        'type' => 'int'
+      ],
+      'sku' => [
+        'type' => 'varchar',
+        'length' => 255,
+      ],
+      'subscription_item' => [
+        'type' => 'blob'
+      ],
+      'subscription_term' => [
+        'type' => 'blob'
+      ],
+      'status' => [
+        'type' => 'int'
+      ],
+      'renew_date' => [
+        'type' => 'int'
+      ],
+    ]
+  ];
+
+  $schema['commerce_sub_customer_invoice'] = [
+    'description' => 'Associates subscription orders to the original order that started the subscription.',
+    'fields' => [
+      'order_id' => [
+        'type' => 'int'
+      ],
+      'sub_order_id' => [
+        'type' => 'int'
+      ]
+    ]
+  ];
+
+  return $sceham;
+}
+
+
+/**
+* Implement hook update
+*/
+function commerce_sub_update_8001() {
+  $schema['commerce_sub_customer_subscription'] = [
+    'description' => 'Stores the information for individual orders',
+    'fields' => [
+      'order_id' => [
+        'type' => 'int'
+      ],
+      'subscription_item' => [
+        'type' => 'blob'
+      ],
+      'subscription_term' => [
+        'type' => 'blob'
+      ],
+      'status' => [
+        'type' => 'int'
+      ],
+      'renew_date' => [
+        'type' => 'int'
+      ],
+    ]
+  ];
+
+  $schema['commerce_sub_customer_invoice'] = [
+    'description' => 'Associates subscription orders to the original order that started the subscription.',
+    'fields' => [
+      'order_id' => [
+        'type' => 'int'
+      ],
+      'sub_order_id' => [
+        'type' => 'int'
+      ]
+    ]
+  ];
+
+  $db = Database::getConnection()->schema();
+  $db->createTable('commerce_sub_customer_subscription', $schema['commerce_sub_customer_subscription']);
+  $db->createTable('commerce_sub_customer_invoice', $schema['commerce_sub_customer_invoice']);
+}
+
+
+/**
+* Implements hook_update.
+* - add the delta field to the database
+* - add the sku field to the database.
+*/
+function commerce_sub_update_8002() {
+  $spec =[];
+
+  $spec['delta'] = [
+    'type' => 'int',
+  ];
+
+  $spec['sku'] = [
+    'type' => 'varchar',
+    'length' => 255,
+  ];
+
+ $schema = Database::getConnection()->schema();
+ $schema->addField('commerce_sub_customer_subscription', 'delta', $spec['delta']);
+ $schema->addField('commerce_sub_customer_subscription', 'sku', $spec['sku']);
+}
+
+function commerce_sub_update_8003() {
+  $spec =[];
+
+  $spec['delta'] = [
+    'type' => 'int',
+  ];
+
+  $spec['sku'] = [
+    'type' => 'varchar',
+    'length' => 255,
+  ];
+
+ $schema = Database::getConnection()->schema();
+ $schema->addField('commerce_sub_customer_subscription', 'delta', $spec['delta']);
+ $schema->addField('commerce_sub_customer_subscription', 'sku', $spec['sku']);
+}

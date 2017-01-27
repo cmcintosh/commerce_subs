@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - commerce_sub
+  module:
+    - entity
+id: commerce_sub_delete_action
+label: 'Delete sub'
+type: commerce_sub
+plugin: 'entity_delete_action:commerce_sub'
+configuration: {  }

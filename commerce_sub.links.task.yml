@@ -1,0 +1,24 @@
+entity.commerce_sub.canonical:
+  route_name: entity.commerce_sub.canonical
+  base_route: entity.commerce_sub.canonical
+  title: 'View'
+
+entity.commerce_sub.page_edit:
+  route_name: entity.commerce_sub.edit_form
+  base_route: entity.commerce_sub.canonical
+  title: Edit
+
+entity.commerce_sub_attribute.edit_form:
+  route_name: entity.commerce_sub_attribute.edit_form
+  base_route: entity.commerce_sub_attribute.edit_form
+  title: 'Edit'
+
+entity.commerce_sub_type.edit_form:
+  route_name: entity.commerce_sub_type.edit_form
+  base_route: entity.commerce_sub_type.edit_form
+  title: Edit
+
+entity.commerce_sub_variation_type.edit_form:
+  route_name: entity.commerce_sub_variation_type.edit_form
+  base_route: entity.commerce_sub_variation_type.edit_form
+  title: Edit

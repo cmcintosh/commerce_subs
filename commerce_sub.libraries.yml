@@ -1,0 +1,11 @@
+form:
+  version: VERSION
+  css:
+    theme:
+      css/sub.form.css: {}
+
+rendered-attributes:
+  version: VERSION
+  css:
+    theme:
+      css/commerce_sub.rendered-attributes.css: {}

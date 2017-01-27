@@ -1,0 +1,23 @@
+entity.commerce_sub.add_page:
+  route_name: entity.commerce_sub.add_page
+  title: 'Add sub'
+  appears_on:
+    - entity.commerce_sub.collection
+
+entity.commerce_sub_attribute.add_form:
+  route_name: entity.commerce_sub_attribute.add_form
+  title: 'Add sub attribute'
+  appears_on:
+    - entity.commerce_sub_attribute.collection
+
+entity.commerce_sub_type.add_form:
+  route_name: entity.commerce_sub_type.add_form
+  title: 'Add sub type'
+  appears_on:
+    - entity.commerce_sub_type.collection
+
+entity.commerce_sub_variation_type.add_form:
+  route_name: entity.commerce_sub_variation_type.add_form
+  title: 'Add sub variation type'
+  appears_on:
+    - entity.commerce_sub_variation_type.collection

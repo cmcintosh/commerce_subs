@@ -1,0 +1,23 @@
+entity.commerce_sub.collection:
+  title: 'Subs'
+  route_name: 'entity.commerce_sub.collection'
+  parent: 'commerce.admin_commerce'
+  description: 'Manage your subs.'
+
+entity.commerce_sub_attribute.collection:
+  title: 'Sub attributes'
+  route_name: 'entity.commerce_sub_attribute.collection'
+  parent: 'commerce.admin_commerce'
+  description: 'Manage your sub attributes.'
+
+entity.commerce_sub_type.collection:
+  title: 'Sub types'
+  route_name: 'entity.commerce_sub_type.collection'
+  parent: 'commerce.configuration'
+  description: 'Manage your sub types.'
+
+entity.commerce_sub_variation_type.collection:
+  title: 'Sub variation types'
+  route_name: 'entity.commerce_sub_variation_type.collection'
+  parent: 'commerce.configuration'
+  description: 'Manage your sub variation types.'

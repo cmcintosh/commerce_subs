@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ *
+ * Default template for sub attribute values.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - sub_attribute_value: The rendered sub attribute value fields.
+ *   Use 'sub_attribute_value' to print them all, or print a subset such as
+ *   'sub_attribute_value.name'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ sub_attribute_value|without('name') }}
+ *   @endcode
+ * - sub_attribute_value_entity: The sub attribute value entity.
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes }}>
+  {{- sub_attribute_value -}}
+</div>

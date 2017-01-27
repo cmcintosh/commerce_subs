@@ -1,0 +1,19 @@
+/**
+ * @file
+ * Styles for the rendered sub attributes element.
+ */
+
+.sub--rendered-attribute .form-item {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 2px;
+}
+.sub--rendered-attribute label.option {
+  display: inline-block;
+}
+.sub--rendered-attribute .form-radio {
+  display: none;
+}
+.sub--rendered-attribute__selected ~ label.option {
+  border: 1px solid;
+}

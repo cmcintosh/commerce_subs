@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ *
+ * Default template for sub variations.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - sub_variation: The rendered sub variation fields.
+ *   Use 'sub_variation' to print them all, or print a subset such as
+ *   'sub_variation.title'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ sub_variation|without('title') }}
+ *   @endcode
+ * - sub_variation_entity: The sub variation entity.
+ * - url: The sub URL.
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes }}>
+  {{- sub_variation -}}
+</div>

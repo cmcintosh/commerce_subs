@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - commerce_sub
+      - commerce_license
+label: 'Subscription Item'
+id: subscription_license
+purchasableEntityType: commerce_sub_variation
+orderType: subscription
+traits: {  }

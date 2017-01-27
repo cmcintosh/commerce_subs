@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - commerce_cart
+      - commerce_sub
+id: commerce_sub_variation.cart
+label: Cart
+targetEntityType: commerce_sub_variation
+cache: true

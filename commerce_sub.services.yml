@@ -1,0 +1,25 @@
+services:
+  commerce_sub.attribute_field_manager:
+    class: Drupal\commerce_sub\SubAttributeFieldManager
+    arguments: ['@entity_field.manager', '@entity_type.bundle.info', '@entity.query', '@cache.data']
+
+  commerce_sub.lazy_builders:
+    class: Drupal\commerce_sub\SubLazyBuilders
+    arguments: ['@entity_type.manager', '@entity.form_builder']
+
+  commerce_sub.variation_field_renderer:
+    class: Drupal\commerce_sub\SubVariationFieldRenderer
+    arguments: ['@entity_type.manager', '@entity_field.manager']
+
+  plugin.manager.sub_item:
+    class: Drupal\commerce_sub\PluginManager\SubItemManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
+
+  plugin.manager.sub_term:
+    class: Drupal\commerce_sub\PluginManager\SubTermManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
+
+  commerce_sub_subscriber:
+    class: '\Drupal\commerce_sub\EventSubscriber\EventHandler'
+    tags:
+      - { name: 'event_subscriber' }

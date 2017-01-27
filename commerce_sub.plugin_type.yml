@@ -1,0 +1,11 @@
+commerce_sub.sub_item:
+  label: Commerce Sub Item
+  provider: commerce_sub
+  plugin_manager_service_id: plugin.manager.sub_item
+  plugin_definition_decorator_class: Drupal\plugin\PluginDefinition\ArrayPluginDefinitionDecorator
+
+commerce_sub.sub_term:
+  label: Commerce Sub Term
+  provider: commerce_sub
+  plugin_manager_service_id: plugin.manager.sub_term
+  plugin_definition_decorator_class: Drupal\plugin\PluginDefinition\ArrayPluginDefinitionDecorator

@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_sub
+id: commerce_unpublish_sub
+label: 'Unpublish sub'
+type: commerce_sub
+plugin: commerce_unpublish_sub
+configuration: {  }

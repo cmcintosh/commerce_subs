@@ -1,0 +1,4 @@
+'administer commerce_sub_type':
+  title: 'Administer sub types'
+  description: 'Maintain the types of subs available and the fields that are associated with those types.'
+  'restrict access': TRUE

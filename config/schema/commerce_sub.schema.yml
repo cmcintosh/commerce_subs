@@ -1,0 +1,83 @@
+commerce_sub.commerce_sub_type.*:
+  type: commerce_config_entity_bundle
+  label: 'Sub type'
+  mapping:
+    description:
+      type: text
+      label: 'Description'
+    variationType:
+      type: string
+      label: 'Variation type'
+    injectVariationFields:
+      type: boolean
+      label: 'Inject sub variation fields into the rendered sub'
+
+commerce_sub.commerce_sub_variation_type.*:
+  type: commerce_config_entity_bundle
+  label: 'Sub variation type'
+  mapping:
+    orderItemType:
+      type: string
+      label: 'Order item type'
+    generateTitle:
+      type: boolean
+      label: 'Generate variation titles based on attribute values'
+
+commerce_sub.commerce_sub_attribute.*:
+  type: config_entity
+  label: 'Sub attribute'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    elementType:
+      type: string
+      label: 'Element type'
+
+field.formatter.settings.commerce_add_to_cart:
+  type: mapping
+  mapping:
+    show_quantity:
+      type: boolean
+      label: 'Whether to display a quantity input field on the add to cart form.'
+    default_quantity:
+      type: string
+      label: 'Default quantity'
+    combine:
+      type: boolean
+      label: 'Whether to attempt to combine order items containing the same sub variation'
+
+field.formatter.settings.commerce_sub_attributes_overview:
+  type: mapping
+  mapping:
+    attributes:
+      type: sequence
+      label: 'Attributes to render.'
+      sequence:
+        type: string
+        label: 'Attribute ID'
+    view_mode:
+      type: string
+      label: 'View mode'
+
+field.widget.settings.commerce_sub_variation_title:
+  type: mapping
+  label: 'Sub variation title widget settings'
+  mapping:
+    label_display:
+      type: boolean
+      label: 'Label display'
+    label_text:
+      type: label
+      label: 'Label text'
+
+action.configuration.commerce_publish_sub:
+  type: action_configuration_default
+  label: 'Configuration for the Publish sub action'
+
+action.configuration.commerce_unpublish_sub:
+  type: action_configuration_default
+  label: 'Configuration for the Unpublish sub action'
