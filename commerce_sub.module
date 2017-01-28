@@ -16,6 +16,11 @@ use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderItem;
 use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_price\Price;
+use Drupal\commerce_payment\Entity\Payment;
+use Drupal\commerce_payment\PaymentStorage;
+use Drupal\commerce_payment\Entity\PaymentInterface;
+use Drupal\commerce_payment\Entity\PaymentGateway;
+use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 
 /**
  * Implements hook_config_translation_info_alter().
@@ -409,6 +414,49 @@ function renew_subscription($sub_data, $charge = TRUE) {
 
   // Associate this invoice with the order id.
   $invoice_number = $invoice->getOrderNumber();
+
+  db_merge('commerce_sub_customer_invoice')
+  ->key(['order_id' => $order->getOrderNumber(),  ])
+  ->fields([
+    'order_id' => $order->getOrderNumber(),
+    'sub_order_id' => $invoice_number
+  ])
+  ->execute();
+
+  if (TRUE) {
+    // Attempt to programmatically create a payment and charge the customer
+    $paymentStorage = \Drupal::entityTypeManager()
+      ->getStorage('commerce_payment');
+    $paymentGatewayStorage = \Drupal::entityTypeManager()
+      ->getStorage('commerce_payment_gateway');
+    $paymentMethodStorage = \Drupal::entityTypeManager()
+      ->getStorage('commerce_payment_method');
+
+    $customer = $order->getCustomer();
+    $paymentGateway = $paymentGatewayStorage->loadForUser($customer);
+    $paymentMethod = array_shift( $paymentMethodStorage->loadReusable($customer, $paymentGateway) );
+
+    try {
+      $payment = $paymentStorage->create([
+        'state' => 'new',
+        'amount' => $order->getTotalPrice(),
+        'payment_gateway' => $paymentGateway->id(),
+        'payment_method' => $paymentMethod->id(),
+        'order_id' => $invoice->id(),
+      ]);
+
+      $payment->save();
+      ksm($payment);
+      $plugin = $paymentGateway->getPlugin();
+      $plugin->createPayment($payment, TRUE);
+
+    }
+    catch (Exceptionr $e) {
+      throw $e;
+    }
+
+
+  }
 
 }
 
