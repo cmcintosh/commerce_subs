@@ -51,6 +51,7 @@ class SubLazyBuilders {
    *   A renderable array containing the cart form.
    */
   public function addToCartForm($sub_id, $view_mode, $combine) {
+    
     /** @var \Drupal\commerce_order\OrderItemStorageInterface $order_item_storage */
     $order_item_storage = $this->entityTypeManager->getStorage('commerce_order_item');
 
@@ -62,6 +63,7 @@ class SubLazyBuilders {
         '#markup' => t('You currently have an active subscription for this item.')
       ];
     }
+
     $order_item = $order_item_storage
       ->createFromPurchasableEntity($sub->getDefaultVariation());
 

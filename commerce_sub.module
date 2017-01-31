@@ -23,6 +23,26 @@ use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 
 /**
+* Implements hook_cron.
+*/
+function commerce_sub_cron() {
+  $now = time();
+  $cron_last = \Drupal::state()->get('system.cron_last');
+  if (!is_numeric($cron_last)) {
+    $cron_last = \Drupal::state()->get('install_time', 0);
+  }
+
+  // First get all due subscriptions.
+  $subscriptions = due_subscription($cron_last, $now);
+
+  // Next we want to renew these subscriptions
+  if(count($subscriptions) > 0) {
+    array_map('renew_subscription', $subscriptions);
+  }
+
+}
+
+/**
  * Implements hook_config_translation_info_alter().
  */
 function commerce_sub_config_translation_info_alter(&$info) {
@@ -360,9 +380,7 @@ function commerce_sub_commerce_order_update(EntityInterface $entity) {
         ->execute();
 
         // Next create the subscription order.
-        $data['subscription_item'] = unserialize($data['subscription_item']);
-        $data['subscription_term'] = unserialize($data['subscription_term']);
-        renew_subscription($data);
+        renew_subscription($data, FALSE);
       }
 
     }
@@ -370,37 +388,142 @@ function commerce_sub_commerce_order_update(EntityInterface $entity) {
 }
 
 /**
+* Implements hook_views_data
+*/
+function commerce_sub_views_data() {
+  $data = [];
+
+  $data['commerce_sub_customer_subscription'] = [
+    'table' => [
+      'group' => t('Subscription'),
+      'provider' => 'commerce_sub',
+      'base' => [
+        'field' => 'order_id',
+        'title' => t('Subscriptions')
+      ],
+      'join' => [
+        'commerce_order' => [
+          'left_field' => 'order_id',
+          'field' => 'order_id'
+        ]
+      ],
+    ],
+    'order_id' => [
+      'title' => t('Commerce Order ID'),
+      'help' => t('The ID of the Order.'),
+      'field'  =>  [ 'id' => 'numeric' ],
+      'filter' =>  [ 'id' => 'numeric' ],
+      'sort'   =>  [ 'id' => 'numeric' ],
+      'relationship' => [
+        'base' => 'commerce_order',
+        'base field' => 'order_id',
+        'id' => 'standard',
+        'label' => t('Subscription: Commerce Order')
+      ]
+    ],
+    'status' => [
+      'title' => t('Status'),
+      'help' => t('If the subscription is active or not.'),
+      'field'  =>  [ 'id' => 'boolean' ],
+      'filter' =>  [ 'id' => 'boolean', 'label' => t('Active'), 'type' => 'yes-no', 'use_equal' => TRUE ],
+      'sort'   =>  [ 'id' => 'standard' ],
+    ],
+    'renew_date' => [
+      'title' => t('Status'),
+      'help' => t('If the subscription is active or not.'),
+      'field'  =>  [ 'id' => 'date' ],
+      'filter' =>  [ 'id' => 'date' ],
+      'sort'   =>  [ 'id' => 'date' ],
+    ]
+  ];
+
+  $data['commerce_sub_customer_invoice'] = [
+    'table' => [
+      'group' => t('Subscription Invoces'),
+      'provider' => 'commerce_sub',
+      'base' => [
+        'field' => 'sub_order_id',
+        'title' => t('Invoices')
+      ],
+      'join' => [
+        'commerce_order' => [
+          'left_field' => 'order_id',
+          'field' => 'sub_order_id'
+        ],
+      ],
+    ],
+    'order_id' => [
+      'title' => t('Subscription Order ID'),
+      'help' => t('The ID of the Order.'),
+      'field'  =>  [ 'id' => 'numeric' ],
+      'filter' =>  [ 'id' => 'numeric' ],
+      'sort'   =>  [ 'id' => 'numeric' ],
+      'relationship' => [
+        'base' => 'commerce_order',
+        'base field' => 'order_id',
+        'id' => 'standard',
+        'label' => t('Subscription: Commerce Order')
+      ]
+    ],
+    'sub_order_id' => [
+      'title' => t('Invoice Order ID'),
+      'help' => t('The ID of the Order.'),
+      'field'  =>  [ 'id' => 'numeric' ],
+      'filter' =>  [ 'id' => 'numeric' ],
+      'sort'   =>  [ 'id' => 'numeric' ],
+      'relationship' => [
+        'base' => 'commerce_order',
+        'base field' => 'order_id',
+        'id' => 'standard',
+        'label' => t('Invoice: Commerce Order')
+      ]
+    ],
+  ];
+
+  return $data;
+}
+
+
+/**
 * Helper function to create a 'subscription' order with the items associated with the
 * active subscription.  This is called when a subscription renews.
 */
 function renew_subscription($sub_data, $charge = TRUE) {
 
+  // Unserialize the data.
+  $sub_data['subscription_item'] = unserialize($sub_data['subscription_item']);
+  $sub_data['subscription_term'] = unserialize($sub_data['subscription_term']);
+  
   // First we need to check if the email for the gift getter exists as a user.
   $order = entity_load('commerce_order', $sub_data['order_id']);
 
   $orderItemStorage = \Drupal::entityTypeManager()
     ->getStorage('commerce_order_item');
+
   // Next we need to create the order for this gift getter.
   $data = array(
-    'type' => 'default',
+    'type' => 'subscription',
     'uid' => $order->uid,
     'store_id' => $order->getStoreId(),
     'mail' => $order->email,
     'created' => time(),
     'changed' => time(),
+    'completed' => time(),
     'state' => 'completed'
   );
   $invoice = Order::create($data);
   $invoice->save();
 
   // @TODO: again need to create an event to do this better.
-  if($sub_data['subscription_item']['commerce_license_variation']) {
-    $purchasedEntity = entity_load('commerce_license_variation', $sub_data['subscription_item']['commerce_license_variation']);
+  if($sub_data['subscription_item']['id'] == 'sub_license') {
+    $purchasedEntity = entity_load('commerce_license_variation',
+      $sub_data['subscription_item']['commerce_license_variation']);
     // Create an order item from this
     $order_item = $orderItemStorage->createFromPurchasableEntity($purchasedEntity);
     $order_item->setQuantity(1);
     $order_item->save();
     $invoice->addItem($order_item);
+    $invoice->save();
   }
   else {
     $purchasedEntity = entity_load('commerce_product_variation', $sub_data['subscription_item']['commerce_product_variation']);
@@ -409,21 +532,25 @@ function renew_subscription($sub_data, $charge = TRUE) {
     $order_item->setQuantity(1);
     $order_item->save();
     $invoice->addItem($order_item);
+    $invoice->save();
   }
+  $invoice->setCompletedTime(time());
   $invoice->save();
+
+  $items = $invoice->getItems();
 
   // Associate this invoice with the order id.
   $invoice_number = $invoice->getOrderNumber();
 
   db_merge('commerce_sub_customer_invoice')
-  ->key(['order_id' => $order->getOrderNumber(),  ])
+  ->key(['order_id' => $order->getOrderNumber(), 'sub_order_id' => $invoice_number ])
   ->fields([
     'order_id' => $order->getOrderNumber(),
     'sub_order_id' => $invoice_number
   ])
   ->execute();
 
-  if (TRUE) {
+  if ($charge) {
     // Attempt to programmatically create a payment and charge the customer
     $paymentStorage = \Drupal::entityTypeManager()
       ->getStorage('commerce_payment');
@@ -434,6 +561,11 @@ function renew_subscription($sub_data, $charge = TRUE) {
 
     $customer = $order->getCustomer();
     $paymentGateway = $paymentGatewayStorage->loadForUser($customer);
+
+    // Get the payment method used on the original order.
+    // We should also provide a way to change this...
+
+    // @TODO: this
     $paymentMethod = array_shift( $paymentMethodStorage->loadReusable($customer, $paymentGateway) );
 
     try {
@@ -446,17 +578,44 @@ function renew_subscription($sub_data, $charge = TRUE) {
       ]);
 
       $payment->save();
-      ksm($payment);
       $plugin = $paymentGateway->getPlugin();
       $plugin->createPayment($payment, TRUE);
+      if ($plugin->state == 'capture_completed') {
+        // For now this is hard coded to term_relative_date,
+        // we will in the future change this for plugin support.
+        $renew_date = strtotime($sub_data['subscription_term']['relative_date'], $sub_data['renew_date']);
+
+        // Charge was sucessful. Update the next renew time.
+        db_merge('commerce_sub_customer_subscription')
+        ->key(['order_id' => $order->getOrderNumber()  ])
+        ->fields([
+          'order_id' => $order->getOrderNumber(),
+          'renew_date' => $renew_date,
+        ])
+        ->execute();
+
+      }
 
     }
-    catch (Exceptionr $e) {
+    catch (Exception $e) {
       throw $e;
     }
 
-
   }
+}
+
+/**
+* Helper function to cancel a 'subscription'
+*/
+function cancel_subscription($order_number) {
+
+  db_merge('commerce_sub_customer_subscription')
+    ->key(['order_id' => $order_number])
+    ->fields([
+      'order_id' => $order_number,
+      'status' => 0,
+    ])
+    ->execute();
 
 }
 
@@ -476,5 +635,20 @@ function user_has_subscription(EntityInterface $entity) {
   $query->fields('cs', ['order_id', 'sku']);
   $query->fields('o', ['uid']);
   $results = $query->execute()->fetchAllAssoc('uid');
+
   return isset($results[$uid]);
+}
+
+/**
+* Helper function that returns all active, due subscriptions.
+*/
+function due_subscription($start, $end) {
+  $query = \Drupal::database()->select('commerce_sub_customer_subscription', 'cs');
+  $query->condition('cs.renew_date', $start, '>');
+  $query->condition('cs.renew_date', $end, '<=');
+  $query->condition('cs.status', 1, '=');
+  $query->fields('cs', ['order_id', 'delta', 'sku', 'subscription_item', 'subscription_term', 'status', 'renew_date']);
+  $results = $query->execute()->fetchAllAssoc('order_id');
+
+  return $results;
 }

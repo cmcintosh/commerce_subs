@@ -4,7 +4,7 @@ dependencies:
   enforced:
     module:
       - commerce_sub
-label: 'Subscription'
+label: 'Subscription Item'
 id: subscription
 purchasableEntityType: commerce_sub_variation
 orderType: default

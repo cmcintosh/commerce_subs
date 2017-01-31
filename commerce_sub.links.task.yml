@@ -22,3 +22,9 @@ entity.commerce_sub_variation_type.edit_form:
   route_name: entity.commerce_sub_variation_type.edit_form
   base_route: entity.commerce_sub_variation_type.edit_form
   title: Edit
+
+subscription.cancel:
+  route_name: subscription.cancel
+  base_route: entity.commerce_order.user_view
+  title: 'Cancel'
+  weight: 50

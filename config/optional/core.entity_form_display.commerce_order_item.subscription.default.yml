@@ -8,7 +8,7 @@ dependencies:
       - commerce_sub
 id: commerce_order_item.subscription.default
 targetEntityType: commerce_order_item
-bundle: default
+bundle: subscription
 mode: default
 content:
   purchased_entity:

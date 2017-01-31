@@ -6,6 +6,7 @@ use Drupal\Core\Database\Database;
 * Implements hook_schema.
 */
 function commerce_sub_schema() {
+  
   $schema = [];
 
   $schema['commerce_sub_customer_subscription'] = [
@@ -48,7 +49,7 @@ function commerce_sub_schema() {
     ]
   ];
 
-  return $sceham;
+  return $schema;
 }
 
 

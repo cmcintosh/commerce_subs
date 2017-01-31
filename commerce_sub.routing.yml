@@ -29,3 +29,37 @@ entity.commerce_sub_variation_type.collection:
     _title: 'Sub variation types'
   requirements:
     _permission: 'administer commerce_sub_type'
+
+subscription.cancel:
+  path: '/user/{user}/orders/{commerce_order}/cancel'
+  defaults:
+    _form: '\Drupal\commerce_sub\Form\SubCancelConfirmForm'
+    _title: 'Cancel Subscription'
+  requirements:
+    _custom_access: '\Drupal\commerce_sub\Access\OrderCancelAccess::access'
+  options:
+    parameters:
+      entity:
+        user: 'entity:user'
+        commerce_order: 'entity:order'
+
+subscription.admin_cancel:
+  path: '/admin/commerce/orders/{commerce_order}/cancel'
+  defaults:
+    _form: '\Drupal\commerce_sub\Form\SubCancelConfirmForm'
+    _title: 'Cancel Subscription'
+  requirements:
+    _custom_access: '\Drupal\commerce_sub\Access\OrderCancelAccess::access'
+  options:
+    parameters:
+      entity:
+        user: 'entity:user'
+        commerce_order: 'entity:order'
+
+subscription.manual_renew:
+  path: '/admin/commerce/orders/renew'
+  defaults:
+    _form: '\Drupal\commerce_sub\Form\SubManualRenew'
+    _title: 'Manually Renew Subscription'
+  requirements:
+    _permission: 'administer commerce_order'
