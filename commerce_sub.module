@@ -491,12 +491,15 @@ function commerce_sub_views_data() {
 function renew_subscription($sub_data, $charge = TRUE) {
 
   // Unserialize the data.
-  $sub_data['subscription_item'] = unserialize($sub_data['subscription_item']);
-  $sub_data['subscription_term'] = unserialize($sub_data['subscription_term']);
-  
-  // First we need to check if the email for the gift getter exists as a user.
-  $order = entity_load('commerce_order', $sub_data['order_id']);
 
+    $sub_data->subscription_item = unserialize($sub_data->subscription_item);
+    $sub_data->subscription_term = unserialize($sub_data->subscription_term);
+
+  \Drupal::logger('sub_data')->notice("<pre>" . print_r($sub_data, true) . '</pre>');
+
+  // First we need to check if the email for the gift getter exists as a user.
+  $order = entity_load('commerce_order', $sub_data->order_id);
+  if($order == null ) { return; }
   $orderItemStorage = \Drupal::entityTypeManager()
     ->getStorage('commerce_order_item');
 
@@ -504,7 +507,7 @@ function renew_subscription($sub_data, $charge = TRUE) {
   $data = array(
     'type' => 'subscription',
     'uid' => $order->uid,
-    'store_id' => $order->getStoreId(),
+    'store_id' => 1,
     'mail' => $order->email,
     'created' => time(),
     'changed' => time(),
@@ -515,9 +518,9 @@ function renew_subscription($sub_data, $charge = TRUE) {
   $invoice->save();
 
   // @TODO: again need to create an event to do this better.
-  if($sub_data['subscription_item']['id'] == 'sub_license') {
+  if($sub_data->subscription_item['id'] == 'sub_license') {
     $purchasedEntity = entity_load('commerce_license_variation',
-      $sub_data['subscription_item']['commerce_license_variation']);
+      $sub_data->subscription_item['commerce_license_variation']);
     // Create an order item from this
     $order_item = $orderItemStorage->createFromPurchasableEntity($purchasedEntity);
     $order_item->setQuantity(1);
@@ -526,7 +529,8 @@ function renew_subscription($sub_data, $charge = TRUE) {
     $invoice->save();
   }
   else {
-    $purchasedEntity = entity_load('commerce_product_variation', $sub_data['subscription_item']['commerce_product_variation']);
+    $purchasedEntity = entity_load('commerce_license_variation',
+    $sub_data->subscription_item['commerce_license_variation']);
     // Create an order item from this
     $order_item = $orderItemStorage->createFromPurchasableEntity($purchasedEntity);
     $order_item->setQuantity(1);
@@ -583,7 +587,7 @@ function renew_subscription($sub_data, $charge = TRUE) {
       if ($plugin->state == 'capture_completed') {
         // For now this is hard coded to term_relative_date,
         // we will in the future change this for plugin support.
-        $renew_date = strtotime($sub_data['subscription_term']['relative_date'], $sub_data['renew_date']);
+        $renew_date = strtotime($sub_data->subscription_term['relative_date'], $sub_data['renew_date']);
 
         // Charge was sucessful. Update the next renew time.
         db_merge('commerce_sub_customer_subscription')
