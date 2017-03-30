@@ -573,30 +573,32 @@ function renew_subscription($sub_data, $charge = TRUE) {
     $paymentMethod = array_shift( $paymentMethodStorage->loadReusable($customer, $paymentGateway) );
 
     try {
-      $payment = $paymentStorage->create([
-        'state' => 'new',
-        'amount' => $order->getTotalPrice(),
-        'payment_gateway' => $paymentGateway->id(),
-        'payment_method' => $paymentMethod->id(),
-        'order_id' => $invoice->id(),
-      ]);
+        if ($paymentMethod) {
+          $payment = $paymentStorage->create([
+            'state' => 'new',
+            'amount' => $order->getTotalPrice(),
+            'payment_gateway' => $paymentGateway->id(),
+            'payment_method' => $paymentMethod->id(),
+            'order_id' => $invoice->id(),
+          ]);
 
-      $payment->save();
-      $plugin = $paymentGateway->getPlugin();
-      $plugin->createPayment($payment, TRUE);
-      if ($plugin->state == 'capture_completed') {
-        // For now this is hard coded to term_relative_date,
-        // we will in the future change this for plugin support.
-        $renew_date = strtotime($sub_data->subscription_term['relative_date'], $sub_data['renew_date']);
+          $payment->save();
+          $plugin = $paymentGateway->getPlugin();
+          $plugin->createPayment($payment, TRUE);
+          if ($plugin->state == 'capture_completed') {
+            // For now this is hard coded to term_relative_date,
+            // we will in the future change this for plugin support.
+            $renew_date = strtotime($sub_data->subscription_term['relative_date'], $sub_data['renew_date']);
 
-        // Charge was sucessful. Update the next renew time.
-        db_merge('commerce_sub_customer_subscription')
-        ->key(['order_id' => $order->getOrderNumber()  ])
-        ->fields([
-          'order_id' => $order->getOrderNumber(),
-          'renew_date' => $renew_date,
-        ])
-        ->execute();
+            // Charge was sucessful. Update the next renew time.
+            db_merge('commerce_sub_customer_subscription')
+            ->key(['order_id' => $order->getOrderNumber()  ])
+            ->fields([
+              'order_id' => $order->getOrderNumber(),
+              'renew_date' => $renew_date,
+            ])
+            ->execute();
+        }
 
       }
 
