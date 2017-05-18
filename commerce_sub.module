@@ -495,8 +495,6 @@ function renew_subscription($sub_data, $charge = TRUE) {
     $sub_data->subscription_item = unserialize($sub_data->subscription_item);
     $sub_data->subscription_term = unserialize($sub_data->subscription_term);
 
-  \Drupal::logger('sub_data')->notice("<pre>" . print_r($sub_data, true) . '</pre>');
-
   // First we need to check if the email for the gift getter exists as a user.
   $order = entity_load('commerce_order', $sub_data->order_id);
   if($order == null ) { return; }
